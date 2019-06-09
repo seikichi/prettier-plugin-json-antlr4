@@ -1,0 +1,38 @@
+{
+  "name": "prettier-plugin-json-antlr4",
+  "description": "a sample prettier plugin with ANTLR",
+  "version": "1.0.0",
+  "author": "seikichi",
+  "bugs": {
+    "url": "https://github.com/seikichi/prettier-plugin-json-antlr4/issues"
+  },
+  "dependencies": {
+    "antlr4ts": "^0.5.0-alpha.3",
+    "prettier": "^1.18.2"
+  },
+  "devDependencies": {
+    "@types/prettier": "^1.16.4",
+    "antlr4ts-cli": "^0.5.0-alpha.3",
+    "cross-env": "^5.2.0",
+    "typescript": "^3.5.1"
+  },
+  "files": [
+    "lib"
+  ],
+  "homepage": "https://github.com/seikichi/prettier-plugin-json-antlr4",
+  "keywords": [
+    "antlr4",
+    "prettier"
+  ],
+  "license": "MIT",
+  "main": "lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seikichi/prettier-plugin-json-antlr4"
+  },
+  "scripts": {
+    "build": "cross-env NODE_ENV=production tsc -p .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "tsc -p . --watch"
+  }
+}
