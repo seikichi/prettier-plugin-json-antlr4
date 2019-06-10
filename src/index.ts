@@ -4,9 +4,9 @@ import {
   FastPath,
   Parser,
   ParserOptions,
-  Plugin,
   Printer,
   SupportLanguage,
+  doc,
 } from "prettier";
 import { ANTLRInputStream, CommonTokenStream } from "antlr4ts";
 
@@ -18,6 +18,8 @@ import {
   PairContext,
   ValueContext,
 } from "./antlr4/JSONParser";
+
+const { builders: { concat, join } } = doc;
 
 type Context = JsonContext | ObjContext | PairContext | ValueContext;
 
@@ -31,18 +33,29 @@ function parse(text: string, parsers: { [parserName: string]: Parser }, options:
   return tree;
 }
 
-function printMyJSON(path: FastPath<Context>): Doc {
+function printMyJSON(path: FastPath<Context>, _options: ParserOptions, print: (path: FastPath<Context>) => Doc): Doc {
   const node: Context = path.getValue();
-  console.log(node.ruleIndex);
+
   if (node instanceof JsonContext) {
-    return path.call(printMyJSON, "children", 0);
+    return path.call(print, "children", 0);
   } else if (node instanceof ObjContext) {
-    console.log(node.children);
+    const results: Doc[] = [];
+    (node.children || []).map((child, index) => {
+      if (child instanceof PairContext) {
+        results.push(path.call(print, "children", index));
+      }
+    });
+    return concat(["{", join(",", results), "}"]);
   } else if (node instanceof PairContext) {
+    if (node.children) {
+      const key = node.children[0];
+      return concat([key.text, ":", path.call(print, "children", 2)]);
+    }
   } else if (node instanceof ValueContext) {
     if (node.obj()) {
-      return path.call(printMyJSON, "children", 0);
+      return path.call(print, "children", 0);
     }
+    return node.text;
   }
 
   return "";

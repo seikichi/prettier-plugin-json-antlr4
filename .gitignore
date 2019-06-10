@@ -1,8 +1,11 @@
 # JS
 node_modules
+
 # Emacs
 *~
 .*~
+
 # Other
 src/antlr4
 lib
+tmp
