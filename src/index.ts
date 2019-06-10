@@ -9,11 +9,13 @@ import {
   doc,
 } from "prettier";
 import { ANTLRInputStream, CommonTokenStream } from "antlr4ts";
+import { TerminalNode } from "antlr4ts/tree/TerminalNode";
 
 import { JSONLexer } from "./antlr4/JSONLexer";
 import {
   JSONParser,
   JsonContext,
+  ArrayContext,
   ObjContext,
   PairContext,
   ValueContext,
@@ -21,16 +23,14 @@ import {
 
 const { builders: { concat, join } } = doc;
 
-type Context = JsonContext | ObjContext | PairContext | ValueContext;
+type Context = JsonContext | ObjContext | ArrayContext | PairContext | ValueContext;
 
-function parse(text: string, parsers: { [parserName: string]: Parser }, options: ParserOptions): AST {
-  // console.log(`parse: ${text}`);
+function parse(text: string, _parsers: { [parserName: string]: Parser }, _options: ParserOptions): AST {
   const stream = new ANTLRInputStream(text);
   const lexer = new JSONLexer(stream);
   const tokens = new CommonTokenStream(lexer);
   const parser = new JSONParser(tokens);
-  const tree = parser.json();
-  return tree;
+  return parser.json();
 }
 
 function printMyJSON(path: FastPath<Context>, _options: ParserOptions, print: (path: FastPath<Context>) => Doc): Doc {
@@ -38,7 +38,9 @@ function printMyJSON(path: FastPath<Context>, _options: ParserOptions, print: (p
 
   if (node instanceof JsonContext) {
     return path.call(print, "children", 0);
-  } else if (node instanceof ObjContext) {
+  }
+
+  if (node instanceof ObjContext) {
     const results: Doc[] = [];
     (node.children || []).map((child, index) => {
       if (child instanceof PairContext) {
@@ -46,13 +48,29 @@ function printMyJSON(path: FastPath<Context>, _options: ParserOptions, print: (p
       }
     });
     return concat(["{", join(",", results), "}"]);
-  } else if (node instanceof PairContext) {
+  }
+
+  if (node instanceof ArrayContext) {
+    const results: Doc[] = [];
+    (node.children || []).map((child, index) => {
+      if (!(child instanceof TerminalNode)) {
+        results.push(path.call(print, "children", index));
+      }
+    });
+    return concat(["[", join(",", results), "]"]);
+  }
+
+  if (node instanceof PairContext) {
     if (node.children) {
       const key = node.children[0];
       return concat([key.text, ":", path.call(print, "children", 2)]);
     }
-  } else if (node instanceof ValueContext) {
+  }
+
+  if (node instanceof ValueContext) {
     if (node.obj()) {
+      return path.call(print, "children", 0);
+    } else if (node.array()) {
       return path.call(print, "children", 0);
     }
     return node.text;
