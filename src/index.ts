@@ -21,7 +21,16 @@ import {
   ValueContext,
 } from "./antlr4/JSONParser";
 
-const { builders: { concat, join } } = doc;
+const {
+  builders: {
+    concat,
+    group,
+    indent,
+    join,
+    line,
+    softline,
+  }
+} = doc;
 
 type Context = JsonContext | ObjContext | ArrayContext | PairContext | ValueContext;
 
@@ -40,40 +49,66 @@ function printMyJSON(path: FastPath<Context>, _options: ParserOptions, print: (p
     return path.call(print, "children", 0);
   }
 
-  if (node instanceof ObjContext) {
+  if (node instanceof PairContext && node.children) {
+    const key = node.children[0];
+    return concat([key.text, ": ", path.call(print, "children", 2)]);
+  }
+
+  if (node instanceof ValueContext) {
+    if (node.obj() || node.array()) {
+      return path.call(print, "children", 0);
+    }
+    return node.text;
+  }
+
+  if (node instanceof ObjContext && node.children) {
     const results: Doc[] = [];
-    (node.children || []).map((child, index) => {
+    node.children.forEach((child, index) => {
       if (child instanceof PairContext) {
         results.push(path.call(print, "children", index));
       }
     });
-    return concat(["{", join(",", results), "}"]);
+    return group(
+      concat([
+        "{",
+        indent(
+          concat([
+            softline,
+            join(
+              concat([",", line]),
+              results,
+            )
+          ])
+        ),
+        softline,
+        "}"
+      ])
+    );
   }
 
-  if (node instanceof ArrayContext) {
+  if (node instanceof ArrayContext && node.children) {
     const results: Doc[] = [];
-    (node.children || []).map((child, index) => {
+    node.children.forEach((child, index) => {
       if (!(child instanceof TerminalNode)) {
         results.push(path.call(print, "children", index));
       }
     });
-    return concat(["[", join(",", results), "]"]);
-  }
-
-  if (node instanceof PairContext) {
-    if (node.children) {
-      const key = node.children[0];
-      return concat([key.text, ":", path.call(print, "children", 2)]);
-    }
-  }
-
-  if (node instanceof ValueContext) {
-    if (node.obj()) {
-      return path.call(print, "children", 0);
-    } else if (node.array()) {
-      return path.call(print, "children", 0);
-    }
-    return node.text;
+    return group(
+      concat([
+        "[",
+        indent(
+          concat([
+            softline,
+            join(
+              concat([",", line]),
+              results,
+            )
+          ])
+        ),
+        softline,
+        "]"
+      ])
+    );
   }
 
   return "";
